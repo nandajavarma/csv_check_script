@@ -184,12 +184,15 @@ def send_email(email_content):
     # The actual sending of the e-mail
     server = smtplib.SMTP(SMTP_SERVER)
 
-    # Credentials (if needed) for sending the mail
+    try:
+        server.starttls()
+        server.login(FROM, PASSWORD)
+        server.sendmail(FROM, [TO], message.as_string())
+        server.quit()
+    except:
+        return sys.exc_info()
+    return 0
 
-    server.starttls()
-    server.login(FROM, PASSWORD)
-    server.sendmail(FROM, [TO], message.as_string())
-    server.quit()
 
 if __name__ == "__main__":
     # If the directory is not provided as cmdline arg, it runs in the
@@ -213,6 +216,12 @@ if __name__ == "__main__":
     if (missed_pickinfo or missed_delinfo):
         email_content = get_email_content(format_missdeliv_info(missed_delinfo), format_misspick_info(missed_pickinfo))
         if email_content:
-            send_email(email_content)
+            ret = send_email(email_content)
+            if ret:
+                print("\nError: Could not send the mail due to the "\
+                        "following reason. : ", ret)
+                print("\nMissing delivery information: {}\n Missing "\
+                "pickup information: {}\n".format(missed_delinfo,
+                    missed_pickinfo))
     else:
         print("No data missing from any files")
