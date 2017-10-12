@@ -24,43 +24,31 @@ SMTP_SERVER = "smtp.sendmail.org:123"
 FROM = "test@mailhelp.org"
 PASSWORD = "supersecretsmtppassword"
 
-# specify how many latest pick up-delivery file pairs should be parsed
-FILE_PAIR_COUNT = 5
-
-
 def get_file_path(basedir, filename):
     # Just to get the relative paths of the files
     return os.path.join(os.path.realpath(basedir), filename)
 
 def get_pickup_delivery_file_pairs(filepath):
-    # Returns lists of (pickupfile, deliveryfile) tuple
+    # Returns (pickupfile, deliveryfile) tuple matching to today's date
     file_pairs = []
-    all_files = os.listdir(filepath)
-    sorted_files = sorted(all_files, key=os.path.getctime,
-                reverse=True)
-    pickup_files = [f for f in sorted_files if
-            re.match(r'.*pickup.*\.csv', f)]
+    today = datetime.date.today().strftime("%m%d%y")
 
-    # Just takes into account FILE_PAIR_COUNT number of file pairs from
-    # the directory
-    pickup_files = pickup_files if (len(pickup_files) <
-            FILE_PAIR_COUNT) else pickup_files[:FILE_PAIR_COUNT]
+    all_files = sorted(os.listdir(filepath))
+    pickup_file = filter(lambda x:
+            re.match(r'.*pickup{}.csv'.format(today), x), all_files)
+    deliv_file = filter(lambda x:
+            re.match(r'.*deliv{}.csv'.format(today), x), all_files)
 
-    for pf in pickup_files:
-        pickup_reg = re.match('(\w*)pickup(\d+)\.csv', pf)
-        deliv_file = pickup_reg.group(1) + 'deliv' + pickup_reg.group(2) + '.csv'
-        if deliv_file not in all_files:
-            print("Delivery file corresponding to {} missing".format(pf))
-        else:
-            file_pairs.append((get_file_path(filepath, pf),
-                    get_file_path(filepath, deliv_file)))
+    for pf, df in zip(pickup_file, deliv_file):
+        file_pairs.append((get_file_path(filepath, pf),
+                get_file_path(filepath, df)))
 
     return file_pairs
 
 def compare_bar_codes(files):
     # Returns the details of the picked up but not delivered items as a
     # list of lists
-    missed_delivery_info = []
+    missed_delivery_info, missed_pickup_info = [], []
     (pickup_file, delivery_file) = files
     with open(pickup_file, 'r') as pickup:
         pickup_info = dict((r[2], r) for i, r in
@@ -182,9 +170,9 @@ def send_email(email_content):
     message.attach(html_body)
 
     # The actual sending of the e-mail
-    server = smtplib.SMTP(SMTP_SERVER)
 
     try:
+        server = smtplib.SMTP(SMTP_SERVER)
         server.starttls()
         server.login(FROM, PASSWORD)
         server.sendmail(FROM, [TO], message.as_string())
@@ -204,24 +192,25 @@ if __name__ == "__main__":
         filepath = sys.argv[1]
 
     filepairs = get_pickup_delivery_file_pairs(filepath)
-    missed_delinfo, missed_pickinfo = [], []
+    if not filepairs:
+        print("INFO: No file pairs matching today's date were found. No "\
+                "action taken.")
+    else:
+        missed_delinfo, missed_pickinfo = [], []
 
-    #creates two lists containing the missing delivery and pickup
-    #barcode scans
-    for afile in filepairs:
-        missed_info = compare_bar_codes(afile)
-        missed_delinfo.extend(missed_info[0])
-        missed_pickinfo.extend(missed_info[1])
+        #creates two lists containing the missing delivery and pickup
+        #barcode scans
+        for afile in filepairs:
+            missed_info = compare_bar_codes(afile)
+            missed_delinfo.extend(missed_info[0])
+            missed_pickinfo.extend(missed_info[1])
 
-    if (missed_pickinfo or missed_delinfo):
         email_content = get_email_content(format_missdeliv_info(missed_delinfo), format_misspick_info(missed_pickinfo))
         if email_content:
             ret = send_email(email_content)
             if ret:
                 print("\nError: Could not send the mail due to the "\
                         "following reason. : ", ret)
-                print("\nMissing delivery information: {}\n Missing "\
+                print("\nMissing delivery information: {}\nMissing "\
                 "pickup information: {}\n".format(missed_delinfo,
                     missed_pickinfo))
-    else:
-        print("No data missing from any files")
