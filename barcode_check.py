@@ -82,10 +82,12 @@ def format_missdeliv_info(info):
     style= "font-family: sans-serif; "\
              "font-size: 14px; vertical-align: top; padding-bottom: 15px;"
     pickup_data =  """
+                   <tr>
                    <td style="{0}">Order Number</td>
                    <td style="{0}">Route Number</td>
                    <td style="{0}">Barcode Number</td>
                    <td style="{0}">PULocation</td>
+                   </tr>
                    """.format(style)
     for each in info:
         pickup_data = pickup_data + '<tr>'
@@ -104,7 +106,8 @@ def format_misspick_info(info):
     deliv_data =  """
                    <tr>
                    <td style="{}">Barcode Number</td>
-                   </tr>""".format(style)
+                   </tr>
+                   """.format(style)
     for each in info:
         deliv_data = deliv_data + ('<tr><td style="{}">{}</td></tr>').format(style, each)
     return deliv_data
@@ -132,8 +135,7 @@ def get_email_content(missed_delinfo, missed_pickinfo):
             warning = "<p %s>Please check all relevant cars and all tote "\
                     "bags for these barcodes. If you find something or not, "\
                     "please email info@foo.com.</p><br/>"
-            msg = "<p {}>{}</p>".format(style, missed_delinfo)
-            email_content = re.sub(r'<missing_deliv_info>', msg,
+            email_content = re.sub(r'<missing_deliv_info>', missed_delinfo,
                     email_content)
             email_content = re.sub(r'<warning>', warning, email_content)
         else:
@@ -143,8 +145,7 @@ def get_email_content(missed_delinfo, missed_pickinfo):
             email_content = re.sub(r'<warning>', '<br/>', email_content)
 
         if missed_pickinfo:
-            msg = "<p {}>{}</p>".format(style, missed_pickinfo)
-            email_content = re.sub(r'<missing_pickup_info>', msg,
+            email_content = re.sub(r'<missing_pickup_info>', missed_pickinfo,
                 email_content)
         else:
             msg = "<i {}>No missing barcode scans.</i>".format(style)
