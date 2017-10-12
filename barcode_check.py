@@ -21,7 +21,7 @@ from email.mime.text import MIMEText
 EMAIL_TEMPLATE = "/tmp/email.html"
 
 # Information for sending the email
-TO = "test@test.com"
+TO = ["test@test.com"]
 SMTP_SERVER = "smtp.sendmail.org:123"
 FROM = "test@mailhelp.org"
 PASSWORD = "supersecretsmtppassword"
@@ -177,7 +177,7 @@ def send_email(email_content):
         server = smtplib.SMTP(SMTP_SERVER)
         server.starttls()
         server.login(FROM, PASSWORD)
-        server.sendmail(FROM, [TO], message.as_string())
+        server.sendmail(FROM, TO, message.as_string())
         server.quit()
     except:
         return sys.exc_info()
