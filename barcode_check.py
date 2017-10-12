@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+# USAGE: barcode_check.py <directory_path>
+
 
 import sys
 import os
