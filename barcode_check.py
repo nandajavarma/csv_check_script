@@ -10,6 +10,24 @@ import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+# MAKE SURE THE FOLLOWING VALUES ARE PROPERLY CONFIGURED BEFORE RUNNING
+# THE SCRIPT
+
+# The email template file. If this is not correct it will look in the
+# current directory. If it still cannot find, it will error out
+
+EMAIL_TEMPLATE = "/tmp/email.html"
+
+# Information for sending the email
+TO = "test@test.com"
+SMTP_SERVER = "smtp.sendmail.org:123"
+FROM = "test@mailhelp.org"
+PASSWORD = "supersecretsmtppassword"
+
+# specify how many latest pick up-delivery file pairs should be parsed
+FILE_PAIR_COUNT = 5
+
+
 def get_file_path(basedir, filename):
     # Just to get the relative paths of the files
     return os.path.join(os.path.realpath(basedir), filename)
@@ -20,7 +38,13 @@ def get_pickup_delivery_file_pairs(filepath):
     all_files = os.listdir(filepath)
     sorted_files = sorted(all_files, key=os.path.getctime,
                 reverse=True)
-    pickup_files = [f for f in sorted_files if re.match(r'.*pickup.*\.csv', f)]
+    pickup_files = [f for f in sorted_files if
+            re.match(r'.*pickup.*\.csv', f)]
+
+    # Just takes into account FILE_PAIR_COUNT number of file pairs from
+    # the directory
+    pickup_files = pickup_files if (len(pickup_files) <
+            FILE_PAIR_COUNT) else pickup_files[:FILE_PAIR_COUNT]
 
     for pf in pickup_files:
         pickup_reg = re.match('(\w*)pickup(\d+)\.csv', pf)
@@ -98,10 +122,21 @@ def format_misspick_info(info):
 
 def get_email_content(missed_delinfo, missed_pickinfo):
     #Inserts the formatted pickup and delivery data to an html email template
-    # TODO scope for better HTML template for the mail
+
+    # If the hardcoded value for html template file is not correct it
+    # will check in the current directory
+
+    if not os.path.isfile(EMAIL_TEMPLATE):
+        if not os.path.isfile("email.html"):
+            print("\nError: Email template file not found.")
+            return
+        email_template = "email.html"
+
     style = 'style="font-family: sans-serif; font-size: 14px; '\
             'font-weight: normal; margin: 0; Margin-bottom: 15px;"'
-    with open("email.html", "r") as html:
+
+
+    with open(email_template, "r") as html:
         email_content = ''.join(html.read().split("\n"))
         if missed_delinfo:
             warning = "<p %s>Please check all relevant cars and all tote "\
@@ -132,13 +167,11 @@ def send_email(email_content):
     subject = "Missing barcode scan offs {}".format(
             datetime.date.today().strftime("%m/%d/%Y"))
     # Replace with the sender email address
-    to = "test.test@test.com"
-    fro = ""
 
     message = MIMEMultipart('alternative')
     message['subject'] = subject
-    message['To'] = to
-    message['From'] = fro
+    message['To'] = TO
+    message['From'] = FROM
 
     # Record the MIME type text/html.
     html_body = MIMEText(email_content, 'html')
@@ -149,14 +182,13 @@ def send_email(email_content):
     message.attach(html_body)
 
     # The actual sending of the e-mail
-    server = smtplib.SMTP('smtp.mailgun.org:587')
+    server = smtplib.SMTP(SMTP_SERVER)
 
     # Credentials (if needed) for sending the mail
-    password = ""
 
     server.starttls()
-    server.login(fro, password)
-    server.sendmail(fro, [to], message.as_string())
+    server.login(FROM, PASSWORD)
+    server.sendmail(FROM, [TO], message.as_string())
     server.quit()
 
 if __name__ == "__main__":
@@ -180,7 +212,7 @@ if __name__ == "__main__":
 
     if (missed_pickinfo or missed_delinfo):
         email_content = get_email_content(format_missdeliv_info(missed_delinfo), format_misspick_info(missed_pickinfo))
-        print(email_content.strip("\n\t \r"))
-        # send_email(email_content)
+        if email_content:
+            send_email(email_content)
     else:
         print("No data missing from any files")
