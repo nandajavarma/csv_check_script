@@ -41,7 +41,7 @@ def get_pickup_delivery_file_pairs(filepath):
     deliv_file = filter(lambda x:
             re.match(r'.*deliv{}.csv'.format(today), x), all_files)
 
-    for pf, df in zip(pickup_file, deliv_file):
+    for pf, df in zip(list(pickup_file), list(deliv_file)):
         file_pairs.append((get_file_path(filepath, pf),
                 get_file_path(filepath, df)))
 
@@ -148,19 +148,19 @@ def get_email_content(missed_delinfo, missed_pickinfo):
                 email_content)
         else:
             msg = "<i {}>No missing barcode scans.</i>".format(style)
-            email_content = re.sub(r'<missing_pick_info>', msg,
+            email_content = re.sub(r'<missing_pickup_info>', msg,
                 email_content)
     return email_content
 
 def send_email(email_content):
     # Sends the mail using smtplib
-    subject = "Missing barcode scan offs {}".format(
+    subject = "Pickup/Delivery data scan report {}".format(
             datetime.date.today().strftime("%m/%d/%Y"))
     # Replace with the sender email address
 
     message = MIMEMultipart('alternative')
     message['subject'] = subject
-    message['To'] = TO
+    message['To'] = ', '.join(TO)
     message['From'] = FROM
 
     # Record the MIME type text/html.
@@ -172,6 +172,7 @@ def send_email(email_content):
     message.attach(html_body)
 
     # The actual sending of the e-mail
+
 
     try:
         server = smtplib.SMTP(SMTP_SERVER)
