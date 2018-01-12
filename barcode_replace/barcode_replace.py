@@ -88,7 +88,11 @@ def get_current_day_files(filepath):
     return todays_files
 
 def replace_barcode(column):
-    return [x[6:11] if column.index(x) == 3 else x for x in column]
+    clist = [x[5:11] if column.index(x) == 3 else x for x in column]
+    rdict = {8: 4,  7:  3,  6: 2, 5: 1,  4:  0}
+    if clist[0] in rdict:
+        clist[0] = rdict[clist[0]]
+    return clist
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
