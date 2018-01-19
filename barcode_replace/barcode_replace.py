@@ -87,11 +87,15 @@ def get_current_day_files(filepath):
             re.match(r'.*{}.csv'.format(today), x), all_files)
     return todays_files
 
+def replace_val(val):
+    val = list(val)[5:11]
+    rdict = {'8': '4',  '7': '3', '6': '2', '5': '1', '4': '0'}
+    if val[0] in rdict:
+        val[0] = rdict[val[0]]
+    return "".join(val)
+
 def replace_barcode(column):
-    clist = [x[5:11] if column.index(x) == 3 else x for x in column]
-    rdict = {8: 4,  7:  3,  6: 2, 5: 1,  4:  0}
-    if clist[0] in rdict:
-        clist[0] = rdict[clist[0]]
+    clist = [replace_val(x) if column.index(x) == 3 else x for x in column]
     return clist
 
 if __name__ == "__main__":
